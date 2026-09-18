@@ -235,12 +235,29 @@ async function revokeUser(userId, name) {
 
 // --- Intruder Evidence Gallery ---
 
+function getWhatsAppDispatchUrl(item) {
+    const origin = window.location.origin;
+    const photoUrl = `${origin}/evidence/intruders/${item.photo_filename}`;
+    const rawPhone = (window.adminPhoneNumber || document.getElementById('setAdminPhone')?.value || '9834481366').replace(/\D/g, '');
+    const waPhone = rawPhone.startsWith('91') && rawPhone.length === 12 ? rawPhone : (rawPhone.length === 10 ? '91' + rawPhone : rawPhone);
+    const waText = encodeURIComponent(`🚨 ANTRA SECURITY ALERT: Unregistered person intercepted at Vault Entrance!\nIncident #${item.id} on ${new Date(item.timestamp).toLocaleString()}.\nThreat Level: ${item.threat_level}\nView Photo: ${photoUrl}`);
+    return `https://api.whatsapp.com/send?phone=${waPhone}&text=${waText}`;
+}
+
 async function loadIntruders() {
     try {
         const res = await fetch('/api/intruders');
         const data = await res.json();
         const list = data.intruders || [];
-        document.getElementById('intruderCount').textContent = list.length;
+        const countEl = document.getElementById('intruderCount');
+        if (countEl) countEl.textContent = list.length;
+
+        const badge = document.getElementById('intruderBadge');
+        const unresolved = list.filter(i => !i.resolved).length;
+        if (badge) {
+            badge.textContent = `${unresolved} Alerts`;
+            badge.style.display = unresolved > 0 ? 'inline-block' : 'none';
+        }
 
         const container = document.getElementById('intruderGallery');
         if (list.length === 0) {
@@ -254,6 +271,8 @@ async function loadIntruders() {
             else if (item.email_sent === 2) emailBadge = '<span style="color: #fbbf24; font-size: 0.65rem;">📧 Logged (Simulated)</span>';
             else if (item.email_sent === -1) emailBadge = '<span style="color: #f87171; font-size: 0.65rem;">📧 Email Failed</span>';
 
+            const waUrl = getWhatsAppDispatchUrl(item);
+
             return `
                 <div class="intruder-card" onclick='openEvidenceModal(${JSON.stringify(item)})'>
                     <img src="/evidence/intruders/${item.photo_filename}" alt="Intruder Photo" onerror="this.src='/static/favicon.png'">
@@ -264,6 +283,11 @@ async function loadIntruders() {
                             ${item.resolved ? '<span style="color: #34d399; font-size: 0.7rem; font-weight: bold;">✓ Resolved</span>' : '<span style="color: #f87171; font-size: 0.7rem; font-weight: bold;">⚠️ Pending</span>'}
                         </div>
                         <div style="margin-top: 4px;">${emailBadge}</div>
+                        <div style="margin-top: 6px;">
+                            <a href="${waUrl}" target="_blank" onclick="event.stopPropagation()" class="nav-btn" style="padding: 0.25rem 0.55rem; font-size: 0.68rem; background: #25D366; color: #fff; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                💬 WhatsApp Alert
+                            </a>
+                        </div>
                     </div>
                 </div>
             `;
@@ -279,14 +303,29 @@ function openEvidenceModal(item) {
     const details = document.getElementById('modalDetails');
     const resolveBtn = document.getElementById('modalResolveBtn');
 
+    const origin = window.location.origin;
+    const photoUrl = `${origin}/evidence/intruders/${item.photo_filename}`;
+    const waUrl = getWhatsAppDispatchUrl(item);
+    const targetPhone = window.adminPhoneNumber || '9834481366';
+    const targetEmail = window.adminAlertEmail || 'poharekulbhushan2006@gmail.com';
+
     img.src = `/evidence/intruders/${item.photo_filename}`;
     details.innerHTML = `
         <div><strong>Incident ID:</strong> #${item.id}</div>
         <div><strong>Timestamp:</strong> ${new Date(item.timestamp).toLocaleString()}</div>
         <div><strong>Detection Reason:</strong> ${item.reason}</div>
         <div><strong>Threat Assessment:</strong> <span class="badge-critical">${item.threat_level}</span></div>
-        <div><strong>Notification Dispatched:</strong> ${item.email_recipient ? item.email_recipient : 'Admin Email'}</div>
+        <div><strong>Notification Dispatched:</strong> ${item.email_recipient ? item.email_recipient : targetEmail}</div>
+        <div><strong>Phone Broadcast:</strong> +91 ${targetPhone} (Direct WhatsApp & SMS)</div>
         <div><strong>Status:</strong> ${item.resolved ? '<span style="color:#34d399;">Resolved & Archived</span>' : '<span style="color:#ef4444;">Active Incident Investigation</span>'}</div>
+        <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="${waUrl}" target="_blank" class="nav-btn" style="background: #25D366; color: #fff; border-color: #22c55e; font-size: 0.8rem; text-decoration: none;">
+                📲 Dispatch Photo via WhatsApp (+91 ${targetPhone})
+            </a>
+            <a href="${photoUrl}" target="_blank" class="nav-btn" style="font-size: 0.8rem; text-decoration: none;">
+                🔍 View Full Res Photo
+            </a>
+        </div>
     `;
 
     resolveBtn.onclick = async () => {
@@ -355,7 +394,12 @@ async function loadSettings() {
         const res = await fetch('/api/settings');
         const data = await res.json();
 
-        document.getElementById('setAdminEmail').value = data.admin_alert_email || '';
+        window.adminAlertEmail = data.admin_alert_email || 'poharekulbhushan2006@gmail.com';
+        window.adminPhoneNumber = data.admin_phone_number || '9834481366';
+
+        document.getElementById('setAdminEmail').value = window.adminAlertEmail;
+        const phoneEl = document.getElementById('setAdminPhone');
+        if (phoneEl) phoneEl.value = window.adminPhoneNumber;
         document.getElementById('setSmtpHost').value = data.smtp_host || '';
         document.getElementById('setSmtpPort').value = data.smtp_port || '587';
         document.getElementById('setSmtpUser').value = data.smtp_user || '';
@@ -370,8 +414,12 @@ async function loadSettings() {
 
 async function handleSettingsSubmit(e) {
     e.preventDefault();
+    const phoneVal = document.getElementById('setAdminPhone') ? document.getElementById('setAdminPhone').value.trim() : '9834481366';
+    const emailVal = document.getElementById('setAdminEmail').value.trim();
+
     const payload = {
-        admin_alert_email: document.getElementById('setAdminEmail').value,
+        admin_alert_email: emailVal,
+        admin_phone_number: phoneVal,
         smtp_host: document.getElementById('setSmtpHost').value,
         smtp_port: document.getElementById('setSmtpPort').value,
         smtp_user: document.getElementById('setSmtpUser').value,
@@ -389,7 +437,9 @@ async function handleSettingsSubmit(e) {
         });
         const data = await res.json();
         if (data.success) {
-            alert("Settings updated successfully!");
+            window.adminAlertEmail = emailVal;
+            window.adminPhoneNumber = phoneVal;
+            alert("Security Alert & Contact settings saved successfully!");
             loadAuditLogs();
         }
     } catch (err) {

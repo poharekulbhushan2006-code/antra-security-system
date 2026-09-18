@@ -66,6 +66,7 @@ class UserRegisterRequest(BaseModel):
 
 class SettingsUpdateRequest(BaseModel):
     admin_alert_email: Optional[str] = None
+    admin_phone_number: Optional[str] = None
     smtp_host: Optional[str] = None
     smtp_port: Optional[str] = None
     smtp_user: Optional[str] = None
@@ -406,6 +407,7 @@ async def list_audit_logs():
 async def get_settings():
     return {
         "admin_alert_email": database.get_setting("admin_alert_email") or ADMIN_ALERT_EMAIL,
+        "admin_phone_number": database.get_setting("admin_phone_number") or ADMIN_PHONE_NUMBER,
         "smtp_host": database.get_setting("smtp_host") or os.getenv("SMTP_HOST", "smtp.gmail.com"),
         "smtp_port": database.get_setting("smtp_port") or str(os.getenv("SMTP_PORT", "587")),
         "smtp_user": database.get_setting("smtp_user") or os.getenv("SMTP_USER", ""),
@@ -419,6 +421,8 @@ async def get_settings():
 async def update_settings(payload: SettingsUpdateRequest):
     if payload.admin_alert_email is not None:
         database.set_setting("admin_alert_email", payload.admin_alert_email.strip())
+    if payload.admin_phone_number is not None:
+        database.set_setting("admin_phone_number", payload.admin_phone_number.strip())
     if payload.smtp_host is not None:
         database.set_setting("smtp_host", payload.smtp_host.strip())
     if payload.smtp_port is not None:

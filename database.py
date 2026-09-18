@@ -71,6 +71,8 @@ def init_db():
             value TEXT NOT NULL
         )
         """)
+        cursor.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('admin_alert_email', 'poharekulbhushan2006@gmail.com')")
+        cursor.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('admin_phone_number', '9834481366')")
         
         conn.commit()
     except Exception as e:

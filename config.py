@@ -50,7 +50,8 @@ except Exception:
     pass
 
 # Email / Alert Notification Settings
-ADMIN_ALERT_EMAIL = os.getenv("ADMIN_ALERT_EMAIL", "security-officer@antrasecurity.local")
+ADMIN_ALERT_EMAIL = os.getenv("ADMIN_ALERT_EMAIL", "poharekulbhushan2006@gmail.com")
+ADMIN_PHONE_NUMBER = os.getenv("ADMIN_PHONE_NUMBER", "9834481366")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")

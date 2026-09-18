@@ -61,21 +61,52 @@ async function initKiosk() {
 
 async function startCamera() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-            audio: false
-        });
+        let stream = null;
+        try {
+            // First attempt with standard 640x480 user-facing constraints
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                audio: false
+            });
+        } catch (firstErr) {
+            console.warn("Primary camera constraint failed, trying generic video fallback...", firstErr);
+            // Fallback: request any available video stream (resolves laptop driver constraint mismatch)
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+            });
+        }
+
         videoEl.srcObject = stream;
         return new Promise((resolve) => {
             videoEl.onloadedmetadata = () => {
-                videoEl.play();
+                videoEl.play().catch(e => console.warn("video play catch:", e));
                 canvasEl.width = videoEl.videoWidth || 640;
                 canvasEl.height = videoEl.videoHeight || 480;
                 resolve();
             };
+            // Fallback if metadata event delayed
+            setTimeout(() => {
+                if (videoEl.videoWidth) {
+                    canvasEl.width = videoEl.videoWidth;
+                    canvasEl.height = videoEl.videoHeight;
+                }
+                resolve();
+            }, 2500);
         });
     } catch (err) {
-        alert("Camera access was denied or no camera device found. Please grant webcam permissions.");
+        console.error("Camera access failed:", err);
+        let errorMsg = "Webcam error: " + (err.message || err.name);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            errorMsg = "Webcam permission blocked. Please click the camera/lock icon in your browser address bar and select 'Always allow'.";
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+            errorMsg = "Webcam is currently in use by another app (Windows Camera, Zoom, Teams, or another tab). Close other camera apps and refresh.";
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+            errorMsg = "No webcam device detected on your laptop. Please connect or enable your camera.";
+        }
+        
+        setStatus(errorMsg, "intruder", "HARDWARE FAULT");
+        alert(errorMsg);
         throw err;
     }
 }
