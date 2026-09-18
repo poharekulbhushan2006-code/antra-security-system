@@ -40,14 +40,14 @@
         <span class="pulse-dot"></span>
         <span id="liveClock">00:00:00 UTC</span>
       </div>
-      <button class="ctrl-btn" onclick="toggleVoiceAI()" id="voiceBtn">
-        🎙️ Voice AI: ON
+      <button class="ctrl-btn" onclick="toggleVoiceAI()" id="voiceBtn" title="Toggle Voice AI Assistant">
+        <span class="btn-icon">🎙️</span><span class="btn-label">Voice AI: ON</span>
       </button>
-      <button class="ctrl-btn" onclick="toggleAudioMute()" id="muteBtn">
-        🔊 Audio: ON
+      <button class="ctrl-btn" onclick="toggleAudioMute()" id="muteBtn" title="Toggle Cyber Audio FX">
+        <span class="btn-icon">🔊</span><span class="btn-label">Audio: ON</span>
       </button>
-      <a href="/admin" class="ctrl-btn" style="border-color: var(--cyan-bright); color: var(--cyan-bright);">
-        🔐 Admin Console
+      <a href="/admin" class="ctrl-btn admin-link" title="Open Admin Security Console">
+        <span class="btn-icon">🔐</span><span class="btn-label">Admin Console</span>
       </a>
     </div>
   </header>
@@ -56,7 +56,7 @@
   <main class="vault-stage">
 
     <!-- Left Wing: Real-Time Cyber Telemetry -->
-    <aside class="hud-wing">
+    <aside class="hud-wing telemetry-wing">
       <div class="wing-header">
         <span class="wing-title">Optical Telemetry</span>
         <span style="font-size: 0.65rem; color: var(--cyan-bright); font-family: var(--font-mono);">DEFCON 1</span>
@@ -141,7 +141,7 @@
     </section>
 
     <!-- Right Wing: Environmental Chamber Diagnostics -->
-    <aside class="hud-wing">
+    <aside class="hud-wing diagnostics-wing">
       <div class="wing-header">
         <span class="wing-title">Chamber Diagnostics</span>
         <span style="font-size: 0.65rem; color: var(--emerald-bright); font-family: var(--font-mono);">ONLINE</span>
@@ -187,13 +187,26 @@
     function toggleVoiceAI() {
       voiceEnabled = !voiceEnabled;
       const btn = document.getElementById('voiceBtn');
-      btn.textContent = voiceEnabled ? '🎙️ Voice AI: ON' : '🎙️ Voice AI: OFF';
+      const label = btn.querySelector('.btn-label');
+      if (label) {
+        label.textContent = voiceEnabled ? 'Voice AI: ON' : 'Voice AI: OFF';
+      } else {
+        btn.textContent = voiceEnabled ? '🎙️ Voice AI: ON' : '🎙️ Voice AI: OFF';
+      }
       if (!voiceEnabled) window.speechSynthesis.cancel();
     }
 
     function toggleAudioMute() {
       window.vaultAudio.muted = !window.vaultAudio.muted;
-      document.getElementById('muteBtn').textContent = window.vaultAudio.muted ? '🔇 Audio: OFF' : '🔊 Audio: ON';
+      const btn = document.getElementById('muteBtn');
+      const icon = btn.querySelector('.btn-icon');
+      const label = btn.querySelector('.btn-label');
+      if (icon && label) {
+        icon.textContent = window.vaultAudio.muted ? '🔇' : '🔊';
+        label.textContent = window.vaultAudio.muted ? 'Audio: OFF' : 'Audio: ON';
+      } else {
+        btn.textContent = window.vaultAudio.muted ? '🔇 Audio: OFF' : '🔊 Audio: ON';
+      }
     }
   </script>
 </body>
