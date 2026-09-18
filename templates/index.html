@@ -46,11 +46,11 @@
       <button class="ctrl-btn" onclick="toggleAudioMute()" id="muteBtn" title="Toggle Cyber Audio FX">
         <span class="btn-icon">🔊</span><span class="btn-label">Audio: ON</span>
       </button>
-      <!-- Admin Console Tab: Strictly Hidden from ordinary users, only revealed to Master Admin -->
-      <a href="/admin" id="adminConsoleLink" class="ctrl-btn admin-link" style="display: none;" title="Open Admin Security Console">
+      <!-- Admin Console Tab: Openly visible, protected by Master Password -->
+      <a href="/admin" id="adminConsoleLink" class="ctrl-btn admin-link" onclick="handleAdminConsoleClick(event)" title="Open Admin Security Console (Password Protected)">
         <span class="btn-icon">🔐</span><span class="btn-label">Admin Console</span>
       </a>
-      <button id="adminLockBtn" class="ctrl-btn" onclick="lockAdminConsole()" style="display: none; border-color: rgba(239, 68, 68, 0.4); color: #f87171;" title="Lock & Hide Admin Console">
+      <button id="adminLockBtn" class="ctrl-btn" onclick="lockAdminConsole()" style="display: none; border-color: rgba(239, 68, 68, 0.4); color: #f87171;" title="Lock Admin Session">
         <span class="btn-icon">🔒</span><span class="btn-label">Lock Admin</span>
       </button>
     </div>

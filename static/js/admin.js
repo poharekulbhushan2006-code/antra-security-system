@@ -58,27 +58,34 @@ async function startEnrollCamera() {
         if (enrollStream) {
             enrollStream.getTracks().forEach(t => t.stop());
         }
-        enrollStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 480, height: 360, facingMode: 'user' },
-            audio: false
-        });
+        try {
+            enrollStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                audio: false
+            });
+        } catch (firstErr) {
+            enrollStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+            });
+        }
         enrollVideo.srcObject = enrollStream;
         enrollVideo.onloadedmetadata = () => {
-            enrollVideo.play();
-            enrollCanvas.width = enrollVideo.videoWidth || 480;
-            enrollCanvas.height = enrollVideo.videoHeight || 360;
+            enrollVideo.play().catch(e => console.warn(e));
+            enrollCanvas.width = enrollVideo.videoWidth || 640;
+            enrollCanvas.height = enrollVideo.videoHeight || 480;
         };
         enrollStatus.textContent = "Camera active. Position face directly in frame, then click 'Scan & Lock Face ID'.";
         enrollStatus.style.color = "var(--accent-cyan)";
     } catch (err) {
-        enrollStatus.textContent = "Camera error: " + err.message;
+        enrollStatus.textContent = "Camera status: " + err.message;
         enrollStatus.style.color = "var(--accent-crimson)";
     }
 }
 
 async function captureEnrollDescriptor() {
     if (!modelsReady) {
-        alert("Neural models are still initializing. Please wait a moment.");
+        enrollStatus.textContent = "Neural models are still initializing. Please wait...";
         return;
     }
     enrollStatus.textContent = "Analyzing facial geometry and computing 128-d embedding...";
@@ -107,15 +114,17 @@ async function captureEnrollDescriptor() {
         // Save descriptor & snapshot
         enrollDescriptor = Array.from(detection.descriptor);
 
-        // Capture photo snapshot
+        // Capture photo snapshot with full resolution and clarity
         const snap = document.createElement('canvas');
-        snap.width = enrollVideo.videoWidth;
-        snap.height = enrollVideo.videoHeight;
+        snap.width = enrollVideo.videoWidth || 640;
+        snap.height = enrollVideo.videoHeight || 480;
         const snapCtx = snap.getContext('2d');
+        snapCtx.imageSmoothingEnabled = true;
+        snapCtx.imageSmoothingQuality = 'high';
         snapCtx.translate(snap.width, 0);
         snapCtx.scale(-1, 1);
-        snapCtx.drawImage(enrollVideo, 0, 0);
-        enrollPhotoBase64 = snap.toDataURL('image/jpeg', 0.9);
+        snapCtx.drawImage(enrollVideo, 0, 0, snap.width, snap.height);
+        enrollPhotoBase64 = snap.toDataURL('image/jpeg', 0.96);
 
         enrollStatus.textContent = "✅ Biometric signature locked! 128-d descriptor extracted successfully.";
         enrollStatus.style.color = "var(--accent-emerald)";

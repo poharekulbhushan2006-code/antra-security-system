@@ -64,18 +64,32 @@ async function startCamera() {
     try {
         let stream = null;
         try {
-            // First attempt with standard 640x480 user-facing constraints
+            // Tier 1: Request Crisp High Definition (1080p / 720p) for crystal clear facial capture
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                video: {
+                    width: { ideal: 1920, min: 1280 },
+                    height: { ideal: 1080, min: 720 },
+                    facingMode: 'user',
+                    frameRate: { ideal: 30, max: 60 }
+                },
                 audio: false
             });
-        } catch (firstErr) {
-            console.warn("Primary camera constraint failed, trying generic video fallback...", firstErr);
-            // Fallback: request any available video stream (resolves laptop driver constraint mismatch)
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false
-            });
+        } catch (hdErr) {
+            console.warn("HD camera constraint not supported, trying standard definition...", hdErr);
+            try {
+                // Tier 2: Standard definition 640x480
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                    audio: false
+                });
+            } catch (sdErr) {
+                console.warn("Standard camera constraint failed, using generic video fallback...", sdErr);
+                // Tier 3: Universal fallback
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+            }
         }
 
         videoEl.srcObject = stream;
@@ -93,21 +107,21 @@ async function startCamera() {
                     canvasEl.height = videoEl.videoHeight;
                 }
                 resolve();
-            }, 2500);
+            }, 1500);
         });
     } catch (err) {
-        console.error("Camera access failed:", err);
-        let errorMsg = "Webcam error: " + (err.message || err.name);
+        console.error("Direct camera access failed:", err);
+        let errorMsg = "Optical sensor error: " + (err.message || err.name);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-            errorMsg = "Webcam permission blocked. Please click the camera/lock icon in your browser address bar and select 'Always allow'.";
+            errorMsg = "Webcam permission pending. Please enable camera in browser settings.";
         } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-            errorMsg = "Webcam is currently in use by another app (Windows Camera, Zoom, Teams, or another tab). Close other camera apps and refresh.";
+            errorMsg = "Webcam in use by another app. Close background camera apps and reload.";
         } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-            errorMsg = "No webcam device detected on your laptop. Please connect or enable your camera.";
+            errorMsg = "No webcam device detected. Please connect or enable your camera.";
         }
         
-        setStatus(errorMsg, "intruder", "HARDWARE FAULT");
-        alert(errorMsg);
+        setStatus(errorMsg, "intruder", "HARDWARE STATUS");
+        // Do NOT show blocking alert dialog - keep interface seamless and responsive
         throw err;
     }
 }
@@ -123,8 +137,9 @@ function startScanningLoop() {
         }
 
         try {
+            // Enhanced inputSize (320) for sharper, higher-precision facial feature extraction
             const detection = await faceapi
-                .detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                .detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
                 .withFaceLandmarks()
                 .withFaceDescriptor();
 
@@ -254,15 +269,25 @@ async function handleIntruderInterception(detection) {
 }
 
 function captureCameraFrame() {
+    if (!videoEl || !videoEl.videoWidth || !videoEl.videoHeight) {
+        return "";
+    }
     const offscreen = document.createElement('canvas');
-    offscreen.width = videoEl.videoWidth || 640;
-    offscreen.height = videoEl.videoHeight || 480;
+    offscreen.width = videoEl.videoWidth;
+    offscreen.height = videoEl.videoHeight;
     const ctx = offscreen.getContext('2d');
     
+    // Superior image smoothing and clarity preservation
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
+    // Mirror horizontally so the saved snapshot matches natural perspective
     ctx.translate(offscreen.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(videoEl, 0, 0, offscreen.width, offscreen.height);
-    return offscreen.toDataURL('image/jpeg', 0.94);
+    
+    // High-definition JPEG (0.96 quality)
+    return offscreen.toDataURL('image/jpeg', 0.96);
 }
 
 // --- Factor 2: Security Passkey Verification ---
@@ -467,7 +492,7 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// --- Secret Security Officer Access Trigger ---
+// --- Security Officer & Admin Console Access ---
 let emblemClickCount = 0;
 let emblemClickTimer = null;
 
@@ -483,6 +508,16 @@ function handleAdminEmblemClick() {
             emblemClickCount = 0;
         }, 1200);
     }
+}
+
+function handleAdminConsoleClick(e) {
+    if (sessionStorage.getItem('antra_admin_token') === 'active') {
+        // Already authenticated, proceed directly to /admin
+        return true;
+    }
+    // Intercept click: prompt for Master Passkey
+    if (e) e.preventDefault();
+    openAdminAuthModal();
 }
 
 function openAdminAuthModal() {
@@ -519,13 +554,16 @@ async function submitAdminSecretAuth(e) {
         const data = await res.json();
         if (res.ok && data.authenticated) {
             sessionStorage.setItem('antra_admin_token', 'active');
-            revealAdminConsole();
+            checkAdminSession();
             closeAdminAuthModal();
-            setStatus("SECURITY OFFICER CLEARANCE VERIFIED // ADMIN CONSOLE UNLOCKED", "verified");
+            setStatus("SECURITY CLEARANCE VERIFIED // OPENING ADMIN CONSOLE...", "verified");
             if (window.vaultAudio) {
                 window.vaultAudio.playGrantedChime();
-                window.vaultAudio.speak("Security officer clearance verified. Admin tab unlocked.");
+                window.vaultAudio.speak("Security clearance verified. Opening admin console.");
             }
+            setTimeout(() => {
+                window.location.href = '/admin';
+            }, 400);
         } else {
             if (err) {
                 err.textContent = "Clearance Denied: Invalid Master Passkey";
@@ -541,33 +579,24 @@ async function submitAdminSecretAuth(e) {
     }
 }
 
-function revealAdminConsole() {
-    const link = document.getElementById('adminConsoleLink');
-    const lockBtn = document.getElementById('adminLockBtn');
-    if (link) {
-        link.style.display = 'inline-flex';
-    }
-    if (lockBtn) {
-        lockBtn.style.display = 'inline-flex';
-    }
-}
-
 function lockAdminConsole() {
     sessionStorage.removeItem('antra_admin_token');
-    const link = document.getElementById('adminConsoleLink');
-    const lockBtn = document.getElementById('adminLockBtn');
-    if (link) link.style.display = 'none';
-    if (lockBtn) lockBtn.style.display = 'none';
-    setStatus("ADMIN CONSOLE LOCKED // TAB HIDDEN FROM DISPLAY", "idle");
+    checkAdminSession();
+    setStatus("ADMIN CONSOLE LOCKED // PASSWORD REQUIRED TO OPEN", "idle");
     if (window.vaultAudio) {
         window.vaultAudio.playScanChirp();
-        window.vaultAudio.speak("Admin console locked and hidden.");
+        window.vaultAudio.speak("Admin session locked.");
     }
 }
 
 function checkAdminSession() {
-    if (sessionStorage.getItem('antra_admin_token') === 'active') {
-        revealAdminConsole();
+    const link = document.getElementById('adminConsoleLink');
+    const lockBtn = document.getElementById('adminLockBtn');
+    if (link) {
+        link.style.display = 'inline-flex'; // Openly visible on page
+    }
+    if (lockBtn) {
+        lockBtn.style.display = (sessionStorage.getItem('antra_admin_token') === 'active') ? 'inline-flex' : 'none';
     }
 }
 
