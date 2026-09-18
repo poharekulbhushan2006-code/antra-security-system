@@ -1,0 +1,26 @@
+# Python Virtual Environments & Cache
+.venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Variables & Secrets
+.env
+
+# Local Database & Dynamic Evidence
+data/*.db
+data/*.db-journal
+evidence/intruders/*.jpg
+evidence/users/*.jpg
+!evidence/intruders/.gitkeep
+!evidence/users/.gitkeep
+
+# Vercel & Node
+.vercel/
+node_modules/
+
+# OS Specific
+.DS_Store
+Thumbs.db

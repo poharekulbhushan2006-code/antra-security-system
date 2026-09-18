@@ -1,0 +1,733 @@
+/* ==========================================================================
+   AEGIS // ZERO-TRUST BIOMETRIC VAULT INTERFACE
+   Aesthetic: Cinematic Aerospace Defense & High-Value Vault Biometrics
+   ========================================================================== */
+
+:root {
+  --void-black: #020408;
+  --panel-bg: rgba(6, 11, 25, 0.75);
+  --panel-border: rgba(0, 242, 254, 0.16);
+  --panel-glow: rgba(0, 242, 254, 0.08);
+
+  --cyan-bright: #00f2fe;
+  --cyan-dim: #4facfe;
+  --emerald-bright: #00f2a9;
+  --emerald-glow: rgba(0, 242, 169, 0.45);
+  --crimson-bright: #ff0844;
+  --crimson-glow: rgba(255, 8, 68, 0.6);
+  --gold-vault: #ffb300;
+
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--void-black);
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(15, 28, 63, 0.5) 0%, transparent 80%),
+    linear-gradient(rgba(0, 242, 254, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 254, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 36px 36px, 36px 36px;
+  color: #f1f5f9;
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+/* --- Top Cinematic Header Bar --- */
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2.5rem;
+  background: rgba(3, 7, 18, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--panel-border);
+  position: relative;
+  z-index: 50;
+}
+
+.terminal-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan-bright), transparent);
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brand-hexagon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(79, 172, 254, 0.1));
+  border: 1px solid var(--cyan-bright);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--cyan-bright);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #fff, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-sub {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-family: var(--font-mono);
+  letter-spacing: 1.5px;
+}
+
+.header-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.status-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  background: rgba(0, 242, 254, 0.08);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  color: var(--cyan-bright);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--emerald-bright);
+  box-shadow: 0 0 8px var(--emerald-bright);
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.7); }
+}
+
+.ctrl-btn {
+  padding: 0.5rem 1rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--panel-border);
+  color: #cbd5e1;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ctrl-btn:hover {
+  background: rgba(0, 242, 254, 0.15);
+  border-color: var(--cyan-bright);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+}
+
+/* --- The Central Stage Layout --- */
+.vault-stage {
+  display: grid;
+  grid-template-columns: 320px 1fr 320px;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  max-width: 1750px;
+  margin: 0 auto;
+  flex: 1;
+  width: 100%;
+  align-items: center;
+}
+
+@media (max-width: 1250px) {
+  .vault-stage {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* --- Floating Cybernetic Wings --- */
+.hud-wing {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  backdrop-filter: blur(24px);
+  padding: 1.4rem;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hud-wing::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan-bright), transparent);
+}
+
+.wing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.65rem;
+}
+
+.wing-title {
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.telemetry-cell {
+  background: rgba(11, 18, 38, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.cell-caption {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: #64748b;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+}
+
+.cell-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--cyan-bright);
+  margin-top: 4px;
+}
+
+/* Simulated Audio Equalizer Spectrum */
+.audio-spectrum {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 38px;
+  padding: 4px 0;
+}
+
+.eq-bar {
+  flex: 1;
+  background: var(--cyan-bright);
+  border-radius: 2px;
+  animation: eq-bounce 1.2s infinite ease-in-out;
+  opacity: 0.75;
+}
+
+.eq-bar:nth-child(2) { animation-delay: 0.2s; }
+.eq-bar:nth-child(3) { animation-delay: 0.4s; }
+.eq-bar:nth-child(4) { animation-delay: 0.1s; }
+.eq-bar:nth-child(5) { animation-delay: 0.5s; }
+.eq-bar:nth-child(6) { animation-delay: 0.3s; }
+.eq-bar:nth-child(7) { animation-delay: 0.6s; }
+
+@keyframes eq-bounce {
+  0%, 100% { height: 20%; }
+  50% { height: 95%; }
+}
+
+/* --- CENTERPIECE: The Biometric Iris Aperture & Kinetic Vault --- */
+.center-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.iris-chamber {
+  position: relative;
+  width: 420px;
+  height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 500px) {
+  .iris-chamber {
+    width: 320px;
+    height: 320px;
+  }
+}
+
+/* Outer Rotating Compass Gyro */
+.gyro-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px dashed rgba(0, 242, 254, 0.3);
+  animation: rotate-gyro 35s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotate-gyro {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Heavy Kinetic Armor Ring */
+.armor-bezel {
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #1e293b, #090e1c 70%, #020617);
+  border: 10px solid #0f172a;
+  box-shadow: 
+    0 0 50px rgba(0, 0, 0, 0.95),
+    inset 0 0 35px rgba(0, 0, 0, 0.9),
+    0 0 0 2px rgba(0, 242, 254, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.unlocked .armor-bezel {
+  border-color: var(--emerald-bright);
+  box-shadow: 
+    0 0 60px var(--emerald-glow),
+    inset 0 0 30px rgba(0, 242, 169, 0.4);
+}
+
+.breach .armor-bezel {
+  border-color: var(--crimson-bright);
+  box-shadow: 
+    0 0 70px var(--crimson-glow),
+    inset 0 0 35px rgba(255, 8, 68, 0.5);
+}
+
+/* Video Feed Inside the Iris */
+.iris-core {
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9);
+}
+
+.iris-core video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.iris-core canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+/* Laser Scanning Ring */
+.laser-ring {
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--cyan-bright);
+  box-shadow: 0 0 20px var(--cyan-bright), inset 0 0 20px var(--cyan-bright);
+  pointer-events: none;
+  opacity: 0.6;
+  animation: pulse-laser 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-laser {
+  from { transform: scale(0.96); opacity: 0.3; }
+  to { transform: scale(1.02); opacity: 0.85; }
+}
+
+/* Mechanical Shutter Aperture Blades (retracts when unlocked) */
+.shutter-blade {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, #1e293b, #0a0f1d);
+  clip-path: polygon(50% 50%, 0 0, 100% 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.unlocked .shutter-blade {
+  opacity: 0;
+  transform: scale(1.5) rotate(45deg);
+}
+
+/* --- Floating Status Badge Below Iris --- */
+.scan-status-badge {
+  margin-top: 1.5rem;
+  padding: 0.85rem 2.2rem;
+  border-radius: 40px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(16px);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 1.5px;
+  color: var(--cyan-bright);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  transition: all 0.35s ease;
+}
+
+.scan-status-badge.verified {
+  border-color: var(--emerald-bright);
+  color: var(--emerald-bright);
+  box-shadow: 0 0 25px var(--emerald-glow);
+}
+
+.scan-status-badge.intruder {
+  border-color: var(--crimson-bright);
+  color: #ff4d6d;
+  box-shadow: 0 0 35px var(--crimson-glow);
+  animation: shake 0.35s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+/* --- Holographic Cipher Card (Passkey Step 2) --- */
+.cipher-panel {
+  margin-top: 1.5rem;
+  background: rgba(11, 19, 43, 0.85);
+  border: 1px solid var(--cyan-bright);
+  border-radius: 18px;
+  padding: 1.5rem 2rem;
+  backdrop-filter: blur(28px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.2);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 440px;
+  animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cipher-panel.active {
+  display: flex;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92) translateY(15px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.officer-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 242, 254, 0.05);
+  border-radius: 10px;
+  border-left: 3px solid var(--emerald-bright);
+  margin-bottom: 1.2rem;
+}
+
+.officer-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #020617;
+  border: 2px solid var(--emerald-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.passkey-input-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.passkey-input {
+  width: 100%;
+  padding: 0.95rem 1.4rem;
+  padding-right: 48px;
+  background: #030712;
+  border: 1.5px solid var(--panel-border);
+  border-radius: 10px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  letter-spacing: 3px;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.passkey-input:focus {
+  border-color: var(--cyan-bright);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.35);
+}
+
+.passkey-eye {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.passkey-eye:hover {
+  color: var(--cyan-bright);
+}
+
+.authorize-btn {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: 1px solid var(--cyan-bright);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.88rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 5px 20px rgba(2, 132, 199, 0.4);
+}
+
+.authorize-btn:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 25px rgba(0, 242, 254, 0.5);
+  transform: translateY(-2px);
+}
+
+/* --- Intruder Breach Perimeter Warning --- */
+.perimeter-strobe {
+  position: fixed;
+  inset: 0;
+  border: 12px solid var(--crimson-bright);
+  box-shadow: inset 0 0 100px var(--crimson-glow);
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  animation: strobe-flash 1s infinite alternate;
+}
+
+@keyframes strobe-flash {
+  from { opacity: 0.2; }
+  to { opacity: 1; }
+}
+
+.perimeter-strobe.active {
+  display: block;
+}
+
+.intruder-alert-toast {
+  position: fixed;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #991b1b, #7f1d1d);
+  border: 2px solid var(--crimson-bright);
+  border-radius: 14px;
+  padding: 1.1rem 2rem;
+  box-shadow: var(--crimson-glow);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  gap: 1.4rem;
+  max-width: 680px;
+  width: 90%;
+  animation: slideDown 0.4s ease;
+}
+
+@keyframes slideDown {
+  from { top: -100px; opacity: 0; }
+  to { top: 75px; opacity: 1; }
+}
+
+.intruder-alert-toast.active {
+  display: flex;
+}
+
+.intruder-thumb {
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid #fecaca;
+}
+
+/* --- Admin Panel Styling (for /admin) --- */
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.6rem;
+  padding: 1.8rem 2.5rem;
+  max-width: 1650px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vault-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 1.6rem;
+  backdrop-filter: blur(20px);
+}
+
+.form-group {
+  margin-bottom: 1.1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #94a3b8;
+  margin-bottom: 0.45rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.8rem 1.1rem;
+  background: #030712;
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+  color: #fff;
+  font-size: 0.92rem;
+  outline: none;
+}
+
+.form-control:focus {
+  border-color: var(--cyan-bright);
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: 1px solid var(--cyan-bright);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.intruder-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.1rem;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.intruder-card {
+  background: #0a0f1d;
+  border: 1px solid rgba(255, 8, 68, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.intruder-card img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+
+.intruder-card-body {
+  padding: 0.65rem 0.85rem;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.log-table th {
+  background: #0b1120;
+  padding: 0.8rem;
+  text-align: left;
+  color: #64748b;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.log-table td {
+  padding: 0.75rem 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}

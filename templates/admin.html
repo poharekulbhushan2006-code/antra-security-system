@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antra Security System - Operations & Evidence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/face-api.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="vault-navbar">
+    <div class="brand-section">
+      <div class="brand-icon" style="background: linear-gradient(135deg, #10b981, #059669);">🔐</div>
+      <div>
+        <div class="brand-title">ANTRA SECURITY MANAGEMENT</div>
+        <div class="brand-subtitle">EVIDENCE VAULT &bull; BIOMETRIC ENROLLMENT &bull; AUDIT LOGS</div>
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <a href="/" class="nav-btn">
+        👁️ Open Access Kiosk
+      </a>
+      <div class="terminal-badge">
+        <span class="status-dot"></span>
+        <span>ADMIN CONSOLE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Admin Subheader Tabs -->
+  <div style="background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid var(--border-glass); padding: 0.75rem 2rem; display: flex; gap: 1rem; overflow-x: auto;">
+    <button class="nav-btn active" id="tabBtn-intruders" onclick="switchTab('intruders')">
+      🚨 Intruder Evidence Vault (<span id="intruderCount">0</span>)
+    </button>
+    <button class="nav-btn" id="tabBtn-enrollment" onclick="switchTab('enrollment')">
+      👤 Personnel Enrollment (<span id="userCount">0</span>)
+    </button>
+    <button class="nav-btn" id="tabBtn-audit" onclick="switchTab('audit')">
+      📜 Security Audit Logs
+    </button>
+    <button class="nav-btn" id="tabBtn-settings" onclick="switchTab('settings')">
+      ⚙️ Email & Alert Settings
+    </button>
+  </div>
+
+  <!-- Tab Content: Intruder Evidence Vault -->
+  <section id="tab-intruders" class="admin-grid" style="display: grid;">
+    <div class="vault-panel" style="grid-column: span 2;">
+      <div class="panel-header">
+        <h2 class="panel-title">
+          <span>🚨</span> Intercepted Intruder Gallery & Photographic Evidence
+        </h2>
+        <button class="nav-btn" onclick="loadIntruders()" style="font-size: 0.8rem;">
+          🔄 Refresh Evidence
+        </button>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1.2rem;">
+        Photographs captured instantly when an unregistered person attempted vault access. Alerts are automatically dispatched via email.
+      </p>
+      <div id="intruderGallery" class="intruder-gallery">
+        <div style="color: var(--text-muted); font-size: 0.85rem; padding: 2rem;">Loading captured evidence...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tab Content: Personnel Enrollment & Active Users -->
+  <section id="tab-enrollment" class="admin-grid" style="display: none;">
+    
+    <!-- Enrollment Form -->
+    <div class="vault-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">
+          <span>➕</span> Enroll Authorized Personnel (Face ID + PIN)
+        </h2>
+      </div>
+
+      <form id="enrollForm" onsubmit="handleEnrollSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="regName" class="form-control" placeholder="e.g. Johnathan Vance" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Employee ID</label>
+            <input type="text" id="regEmpId" class="form-control" placeholder="e.g. EMP-9042" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role / Clearance</label>
+            <select id="regRole" class="form-control" required>
+              <option value="Vault Custodian">Vault Custodian</option>
+              <option value="Branch Manager">Branch Manager</option>
+              <option value="Chief Security Officer">Chief Security Officer</option>
+              <option value="Armored Cash Courier">Armored Cash Courier</option>
+              <option value="Executive Officer">Executive Officer</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Security Password / Passcode (e.g. antra)</label>
+          <input type="password" id="regPin" class="form-control" placeholder="Enter security password (e.g. antra)" minlength="3" required>
+        </div>
+
+        <!-- Biometric Face Capture Box -->
+        <div class="form-group">
+          <label class="form-label">Biometric Face Enrollment</label>
+          <div style="position: relative; width: 100%; aspect-ratio: 4/3; max-height: 240px; background: #000; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-glass);">
+            <video id="enrollVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+            <canvas id="enrollCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none;"></canvas>
+          </div>
+          <div style="margin-top: 0.6rem; display: flex; gap: 0.6rem;">
+            <button type="button" class="nav-btn" onclick="startEnrollCamera()" style="font-size: 0.8rem;">
+              📷 Start Camera
+            </button>
+            <button type="button" class="nav-btn active" id="btnCaptureDescriptor" onclick="captureEnrollDescriptor()" style="font-size: 0.8rem;">
+              ✨ Scan & Lock Face ID
+            </button>
+          </div>
+          <div id="enrollFaceStatus" style="margin-top: 0.5rem; font-size: 0.8rem; font-family: var(--font-mono); color: var(--text-muted);">
+            Status: Awaiting facial capture...
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="btnSubmitEnroll">
+          REGISTER & ENROLL PERSONNEL
+        </button>
+      </form>
+    </div>
+
+    <!-- Active Personnel Directory -->
+    <div class="vault-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">
+          <span>👥</span> Authorized Personnel Directory
+        </h2>
+        <button class="nav-btn" onclick="loadUsers()" style="font-size: 0.8rem;">
+          🔄 Refresh
+        </button>
+      </div>
+      <div id="userDirectory" style="max-height: 550px; overflow-y: auto;">
+        <div style="color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem;">Loading active directory...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tab Content: Security Audit Logs -->
+  <section id="tab-audit" class="admin-grid" style="display: none;">
+    <div class="vault-panel" style="grid-column: span 2;">
+      <div class="panel-header">
+        <h2 class="panel-title">
+          <span>📜</span> System Security Audit Trail
+        </h2>
+        <button class="nav-btn" onclick="loadAuditLogs()" style="font-size: 0.8rem;">
+          🔄 Refresh Logs
+        </button>
+      </div>
+      <div class="log-table-container">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Event Type</th>
+              <th>Personnel / Subject</th>
+              <th>Details</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading logs...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tab Content: Settings -->
+  <section id="tab-settings" class="admin-grid" style="display: none;">
+    <div class="vault-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">
+          <span>📧</span> Security Email Alert Configuration
+        </h2>
+      </div>
+
+      <form id="settingsForm" onsubmit="handleSettingsSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Security Officer Alert Recipient Email</label>
+          <input type="email" id="setAdminEmail" class="form-control" placeholder="security-chief@yourbank.com" required>
+          <span style="font-size: 0.72rem; color: var(--text-muted);">
+            Intruder photos and urgent breach notifications will be sent directly to this address.
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">SMTP Server Host</label>
+            <input type="text" id="setSmtpHost" class="form-control" placeholder="smtp.gmail.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Port</label>
+            <input type="text" id="setSmtpPort" class="form-control" placeholder="587">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">SMTP Username / Email</label>
+          <input type="text" id="setSmtpUser" class="form-control" placeholder="your_email@gmail.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">SMTP Password / App Password</label>
+          <input type="password" id="setSmtpPassword" class="form-control" placeholder="16-character App Password">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sender Display Email (From)</label>
+          <input type="text" id="setSmtpFrom" class="form-control" placeholder="vault-security@yourbank.com">
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+          <button type="submit" class="submit-btn" style="flex: 1;">
+            💾 Save Settings
+          </button>
+          <button type="button" class="nav-btn" onclick="sendTestAlertEmail()" style="padding: 0 1.2rem; font-size: 0.85rem; border-color: var(--accent-cyan); color: var(--accent-cyan);">
+            🧪 Send Test Email
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Threshold & Timer Tuning -->
+    <div class="vault-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">
+          <span>🎛️</span> Access & Biometric Calibration
+        </h2>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Biometric Face Match Strictness (Distance Threshold)</label>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <input type="range" id="setFaceThreshold" min="0.40" max="0.70" step="0.01" value="0.55" style="flex: 1;" oninput="document.getElementById('threshVal').textContent = this.value">
+          <span id="threshVal" style="font-family: var(--font-mono); font-weight: bold; color: var(--accent-cyan);">0.55</span>
+        </div>
+        <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">
+          Recommended: 0.50 - 0.55. Lower value = higher security (stricter face matching).
+        </span>
+      </div>
+
+      <div class="form-group" style="margin-top: 1.5rem;">
+        <label class="form-label">Vault Auto-Lock Duration (Seconds)</label>
+        <input type="number" id="setAutoLockSec" class="form-control" value="10" min="5" max="60">
+        <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">
+          How long the vault door remains unlocked before automatically sealing itself.
+        </span>
+      </div>
+
+      <div style="margin-top: 2rem; padding: 1rem; border-radius: 8px; background: rgba(6, 182, 212, 0.08); border: 1px dashed var(--accent-cyan);">
+        <h4 style="color: var(--accent-cyan); font-size: 0.88rem; margin-bottom: 0.5rem;">ℹ️ Dual-Factor Security Architecture</h4>
+        <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;">
+          The system strictly mandates <strong>both</strong> biometric face verification and cryptographic PIN clearance.
+          Unregistered persons are immediately photographed, cataloged in the Evidence Vault, and an alert email is dispatched.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Full-Screen Modal for Inspecting Intruder Evidence -->
+  <div id="evidenceModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+    <div style="background: #0f172a; border: 2px solid #ef4444; border-radius: 12px; max-width: 550px; width: 90%; overflow: hidden; box-shadow: var(--glow-crimson);">
+      <div style="background: #991b1b; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1rem; color: #fff;">🚨 Intruder Evidence Inspection</h3>
+        <button onclick="closeEvidenceModal()" style="background: transparent; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      <div style="padding: 1.2rem; text-align: center;">
+        <img id="modalImg" src="" style="max-width: 100%; height: 260px; object-fit: contain; border-radius: 6px; border: 1px solid #334155;">
+        <div id="modalDetails" style="text-align: left; margin-top: 1rem; font-size: 0.85rem; line-height: 1.6; color: #cbd5e1;"></div>
+      </div>
+      <div style="padding: 0.8rem 1.2rem; background: #080c18; display: flex; justify-content: flex-end; gap: 0.8rem;">
+        <button id="modalResolveBtn" class="nav-btn active" style="font-size: 0.8rem; background: #059669; border-color: #10b981;">
+          ✓ Mark Resolved
+        </button>
+        <button onclick="closeEvidenceModal()" class="nav-btn" style="font-size: 0.8rem;">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/admin.js"></script>
+</body>
+</html>

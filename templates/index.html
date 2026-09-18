@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antra Security System - Biometric Air-Lock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/face-api.min.js"></script>
+</head>
+<body>
+
+  <!-- Screen Perimeter Emergency Alert Flash -->
+  <div id="perimeterStrobe" class="perimeter-strobe"></div>
+
+  <!-- Intruder Alert Toast -->
+  <div id="intruderBanner" class="intruder-alert-toast">
+    <img id="intruderPreviewImg" class="intruder-thumb" src="" alt="Intruder Snapshot">
+    <div style="flex: 1;">
+      <div id="intruderBannerText" style="font-size: 0.92rem; line-height: 1.45;">
+        <strong>CRITICAL SECURITY BREACH:</strong> Unregistered Person Intercepted!
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Cinematic Header -->
+  <header class="terminal-header">
+    <div class="brand-block">
+      <div class="brand-hexagon">⬢</div>
+      <div>
+        <div class="brand-title">{{ bank_name }}</div>
+        <div class="brand-sub">AUTONOMOUS BIOMETRIC AIR-LOCK // TERMINAL IX</div>
+      </div>
+    </div>
+
+    <div class="header-telemetry">
+      <div class="status-pill">
+        <span class="pulse-dot"></span>
+        <span id="liveClock">00:00:00 UTC</span>
+      </div>
+      <button class="ctrl-btn" onclick="toggleVoiceAI()" id="voiceBtn">
+        🎙️ Voice AI: ON
+      </button>
+      <button class="ctrl-btn" onclick="toggleAudioMute()" id="muteBtn">
+        🔊 Audio: ON
+      </button>
+      <a href="/admin" class="ctrl-btn" style="border-color: var(--cyan-bright); color: var(--cyan-bright);">
+        🔐 Admin Console
+      </a>
+    </div>
+  </header>
+
+  <!-- Central Stage -->
+  <main class="vault-stage">
+
+    <!-- Left Wing: Real-Time Cyber Telemetry -->
+    <aside class="hud-wing">
+      <div class="wing-header">
+        <span class="wing-title">Optical Telemetry</span>
+        <span style="font-size: 0.65rem; color: var(--cyan-bright); font-family: var(--font-mono);">DEFCON 1</span>
+      </div>
+
+      <div class="telemetry-cell">
+        <div class="cell-caption">Neural Pipeline</div>
+        <div class="cell-value">FaceNet 128-D</div>
+      </div>
+
+      <div class="telemetry-cell">
+        <div class="cell-caption">Facial Mesh Density</div>
+        <div class="cell-value" id="meshCount">68 Active Nodes</div>
+      </div>
+
+      <div class="telemetry-cell">
+        <div class="cell-caption">Optical Sensor Stream</div>
+        <div class="cell-value" style="color: var(--emerald-bright);">60 FPS // LOCKED</div>
+      </div>
+
+      <div class="telemetry-cell">
+        <div class="cell-caption">Audio Spectrum Monitor</div>
+        <div class="audio-spectrum">
+          <div class="eq-bar" style="height: 40%;"></div>
+          <div class="eq-bar" style="height: 75%;"></div>
+          <div class="eq-bar" style="height: 95%;"></div>
+          <div class="eq-bar" style="height: 60%;"></div>
+          <div class="eq-bar" style="height: 80%;"></div>
+          <div class="eq-bar" style="height: 35%;"></div>
+          <div class="eq-bar" style="height: 90%;"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Column: Kinetic Biometric Iris & Aperture Chamber -->
+    <section class="center-column">
+      <div id="vaultDoor" class="iris-chamber">
+        <!-- Rotating Gyro Degree Compass -->
+        <div class="gyro-ring"></div>
+
+        <!-- Heavy Titanium Armor Bezel -->
+        <div class="armor-bezel">
+          <!-- Central Iris Mask with Webcam -->
+          <div class="iris-core">
+            <video id="cameraFeed" autoplay playsinline muted></video>
+            <canvas id="cameraOverlay"></canvas>
+            <div class="laser-ring"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Biometric Status Badge -->
+      <div id="statusBar" class="scan-status-badge">
+        <span id="statusText">SYSTEM ARMED: POSITION FACE IN IRIS SENSOR</span>
+      </div>
+
+      <!-- Holographic Cipher Panel (Step 2 Passkey) -->
+      <div id="pinSection" class="cipher-panel">
+        <div class="officer-ribbon">
+          <div class="officer-avatar">👤</div>
+          <div>
+            <div id="pinUserName" style="font-weight: 700; font-size: 0.95rem; color: #fff;">OFFICER VERIFIED</div>
+            <div id="pinUserRole" style="font-size: 0.72rem; color: var(--cyan-bright); font-family: var(--font-mono);">
+              FACTOR 1 CLEARED // ENTER PASSKEY
+            </div>
+          </div>
+        </div>
+
+        <div class="passkey-input-wrapper">
+          <input type="password" id="vaultPasswordInput" class="passkey-input" placeholder="Enter passkey (e.g. antra)" autocomplete="off">
+          <button type="button" onclick="togglePasswordVisibility()" class="passkey-eye">👁️</button>
+        </div>
+
+        <button class="authorize-btn" onclick="submitPinVerification()">
+          🔓 AUTHORIZE & DISENGAGE VAULT
+        </button>
+
+        <button onclick="cancelPinAuth()" style="margin-top: 0.9rem; background: transparent; border: none; color: #64748b; font-size: 0.75rem; cursor: pointer; text-decoration: underline;">
+          Cancel Clearance
+        </button>
+      </div>
+    </section>
+
+    <!-- Right Wing: Environmental Chamber Diagnostics -->
+    <aside class="hud-wing">
+      <div class="wing-header">
+        <span class="wing-title">Chamber Diagnostics</span>
+        <span style="font-size: 0.65rem; color: var(--emerald-bright); font-family: var(--font-mono);">ONLINE</span>
+      </div>
+
+      <div class="telemetry-cell">
+        <div class="cell-caption">Vault Seal Status</div>
+        <div id="vaultStateText" class="cell-value" style="color: #f87171;">SECURE // SEALED</div>
+      </div>
+
+      <div class="telemetry-cell">
+        <div class="cell-caption">Atmospheric Pressure</div>
+        <div class="cell-value">1.018 ATM</div>
+      </div>
+
+      <div class="telemetry-cell">
+        <div class="cell-caption">Core Chamber Temp</div>
+        <div class="cell-value">18.6° C</div>
+      </div>
+
+      <div class="telemetry-cell">
+        <div class="cell-caption">Anti-Tamper Matrix</div>
+        <div class="cell-value" style="color: var(--emerald-bright);">ACTIVE DISPATCH</div>
+      </div>
+    </aside>
+
+  </main>
+
+  <script src="/static/js/audio.js"></script>
+  <script src="/static/js/kiosk.js"></script>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-GB') + ' ' + (now.toTimeString().split(' ')[1] || 'UTC');
+      const el = document.getElementById('liveClock');
+      if (el) el.textContent = timeStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    let voiceEnabled = true;
+    function toggleVoiceAI() {
+      voiceEnabled = !voiceEnabled;
+      const btn = document.getElementById('voiceBtn');
+      btn.textContent = voiceEnabled ? '🎙️ Voice AI: ON' : '🎙️ Voice AI: OFF';
+      if (!voiceEnabled) window.speechSynthesis.cancel();
+    }
+
+    function toggleAudioMute() {
+      window.vaultAudio.muted = !window.vaultAudio.muted;
+      document.getElementById('muteBtn').textContent = window.vaultAudio.muted ? '🔇 Audio: OFF' : '🔊 Audio: ON';
+    }
+  </script>
+</body>
+</html>
