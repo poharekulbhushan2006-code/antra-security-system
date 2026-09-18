@@ -13,6 +13,7 @@ const enrollCanvas = document.getElementById('enrollCanvas');
 const enrollStatus = document.getElementById('enrollFaceStatus');
 
 async function initAdmin() {
+    checkAdminGate();
     // Load models
     try {
         await faceapi.nets.tinyFaceDetector.loadFromUri('/static/models');
@@ -468,4 +469,58 @@ async function sendTestAlertEmail() {
     }
 }
 
+// --- Security Officer Master Passkey Gate ---
+
+function checkAdminGate() {
+    if (sessionStorage.getItem('antra_admin_token') !== 'active') {
+        const gate = document.getElementById('adminGateModal');
+        if (gate) {
+            gate.style.display = 'flex';
+            setTimeout(() => {
+                const inp = document.getElementById('gatePasskeyInput');
+                if (inp) inp.focus();
+            }, 100);
+        }
+    }
+}
+
+async function handleGateAuth(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('gatePasskeyInput');
+    const err = document.getElementById('gateAuthError');
+    const passkey = input ? input.value.trim() : '';
+
+    if (!passkey) return;
+
+    try {
+        const res = await fetch('/api/admin-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ passkey: passkey })
+        });
+        const data = await res.json();
+        if (res.ok && data.authenticated) {
+            sessionStorage.setItem('antra_admin_token', 'active');
+            const gate = document.getElementById('adminGateModal');
+            if (gate) gate.style.display = 'none';
+        } else {
+            if (err) {
+                err.textContent = "Clearance Denied: Invalid Master Passkey";
+                err.style.display = 'block';
+            }
+        }
+    } catch (ex) {
+        if (err) {
+            err.textContent = "Authentication failed: " + ex.message;
+            err.style.display = 'block';
+        }
+    }
+}
+
+function lockAndExitAdmin() {
+    sessionStorage.removeItem('antra_admin_token');
+    window.location.href = '/';
+}
+
 document.addEventListener('DOMContentLoaded', initAdmin);
+

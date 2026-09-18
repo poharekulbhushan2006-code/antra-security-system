@@ -41,6 +41,7 @@ const perimeterStrobe = document.getElementById('perimeterStrobe');
 // --- Initialization ---
 
 async function initKiosk() {
+    checkAdminSession();
     setStatus("INITIALIZING BIOMETRIC NEURAL MESH...", "idle", "WARMING UP TENSORFLOW");
     try {
         await faceapi.nets.tinyFaceDetector.loadFromUri('/static/models');
@@ -447,7 +448,7 @@ function setStatus(text, stateType) {
     statusBar.className = 'scan-status-badge ' + (stateType === 'verified' ? 'verified' : (stateType === 'intruder' ? 'intruder' : ''));
 }
 
-// --- Keyboard Support ---
+// --- Keyboard Support & Secret Admin Hotkeys ---
 
 window.addEventListener('keydown', (e) => {
     if (currentState === STATE.PIN_REQUIRED) {
@@ -458,6 +459,117 @@ window.addEventListener('keydown', (e) => {
             cancelPinAuth();
         }
     }
+
+    // Secret Admin Shortcut: Ctrl + Shift + A or Ctrl + Alt + A
+    if ((e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') || (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a')) {
+        e.preventDefault();
+        openAdminAuthModal();
+    }
 });
 
+// --- Secret Security Officer Access Trigger ---
+let emblemClickCount = 0;
+let emblemClickTimer = null;
+
+function handleAdminEmblemClick() {
+    emblemClickCount++;
+    if (emblemClickTimer) clearTimeout(emblemClickTimer);
+
+    if (emblemClickCount >= 3) {
+        emblemClickCount = 0;
+        openAdminAuthModal();
+    } else {
+        emblemClickTimer = setTimeout(() => {
+            emblemClickCount = 0;
+        }, 1200);
+    }
+}
+
+function openAdminAuthModal() {
+    const modal = document.getElementById('adminAuthModal');
+    if (!modal) return;
+    const input = document.getElementById('adminPasskeyInput');
+    const err = document.getElementById('adminAuthError');
+    if (err) err.style.display = 'none';
+    if (input) input.value = '';
+    modal.style.display = 'flex';
+    setTimeout(() => input && input.focus(), 150);
+}
+
+function closeAdminAuthModal() {
+    const modal = document.getElementById('adminAuthModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function submitAdminSecretAuth(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('adminPasskeyInput');
+    const err = document.getElementById('adminAuthError');
+    const passkey = input ? input.value.trim() : '';
+
+    if (!passkey) return;
+
+    try {
+        const res = await fetch('/api/admin-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ passkey: passkey })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.authenticated) {
+            sessionStorage.setItem('antra_admin_token', 'active');
+            revealAdminConsole();
+            closeAdminAuthModal();
+            setStatus("SECURITY OFFICER CLEARANCE VERIFIED // ADMIN CONSOLE UNLOCKED", "verified");
+            if (window.vaultAudio) {
+                window.vaultAudio.playGrantedChime();
+                window.vaultAudio.speak("Security officer clearance verified. Admin tab unlocked.");
+            }
+        } else {
+            if (err) {
+                err.textContent = "Clearance Denied: Invalid Master Passkey";
+                err.style.display = 'block';
+            }
+            if (window.vaultAudio) window.vaultAudio.playDeny();
+        }
+    } catch (errExp) {
+        if (err) {
+            err.textContent = "Authentication failed: " + errExp.message;
+            err.style.display = 'block';
+        }
+    }
+}
+
+function revealAdminConsole() {
+    const link = document.getElementById('adminConsoleLink');
+    const lockBtn = document.getElementById('adminLockBtn');
+    if (link) {
+        link.style.display = 'inline-flex';
+    }
+    if (lockBtn) {
+        lockBtn.style.display = 'inline-flex';
+    }
+}
+
+function lockAdminConsole() {
+    sessionStorage.removeItem('antra_admin_token');
+    const link = document.getElementById('adminConsoleLink');
+    const lockBtn = document.getElementById('adminLockBtn');
+    if (link) link.style.display = 'none';
+    if (lockBtn) lockBtn.style.display = 'none';
+    setStatus("ADMIN CONSOLE LOCKED // TAB HIDDEN FROM DISPLAY", "idle");
+    if (window.vaultAudio) {
+        window.vaultAudio.playScanChirp();
+        window.vaultAudio.speak("Admin console locked and hidden.");
+    }
+}
+
+function checkAdminSession() {
+    if (sessionStorage.getItem('antra_admin_token') === 'active') {
+        revealAdminConsole();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', initKiosk);
+

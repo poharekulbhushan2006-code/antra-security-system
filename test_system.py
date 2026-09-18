@@ -36,7 +36,13 @@ def run_all_tests():
     res_admin = client.get("/admin")
     assert res_admin.status_code == 200, f"Admin returned {res_admin.status_code}"
     assert "ANTRA SECURITY MANAGEMENT" in res_admin.text
-    print("  PASS: HTML templates render correctly with security headers.\n")
+    
+    # Test Admin Security Gate Passkey Auth
+    res_auth_fail = client.post("/api/admin-auth", json={"passkey": "wrongkey"})
+    assert res_auth_fail.status_code == 401, "Invalid passkey should be rejected"
+    res_auth_ok = client.post("/api/admin-auth", json={"passkey": "antra"})
+    assert res_auth_ok.status_code == 200 and res_auth_ok.json().get("authenticated") is True
+    print("  PASS: HTML templates & Security Officer Clearance Gate verified.\n")
 
     # Test 2: User Enrollment
     print("[TEST 2] Enrolling Authorized Personnel with Face ID & PIN...")

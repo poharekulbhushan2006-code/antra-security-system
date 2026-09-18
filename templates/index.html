@@ -27,7 +27,7 @@
 
   <!-- Top Cinematic Header -->
   <header class="terminal-header">
-    <div class="brand-block">
+    <div class="brand-block" id="adminSecretTrigger" onclick="handleAdminEmblemClick()" title="Antra Terminal IX (Click 3x or press Ctrl+Shift+A for Officer Access)" style="cursor: pointer; user-select: none;">
       <div class="brand-hexagon">⬢</div>
       <div>
         <div class="brand-title">{{ bank_name }}</div>
@@ -46,9 +46,13 @@
       <button class="ctrl-btn" onclick="toggleAudioMute()" id="muteBtn" title="Toggle Cyber Audio FX">
         <span class="btn-icon">🔊</span><span class="btn-label">Audio: ON</span>
       </button>
-      <a href="/admin" class="ctrl-btn admin-link" title="Open Admin Security Console">
+      <!-- Admin Console Tab: Strictly Hidden from ordinary users, only revealed to Master Admin -->
+      <a href="/admin" id="adminConsoleLink" class="ctrl-btn admin-link" style="display: none;" title="Open Admin Security Console">
         <span class="btn-icon">🔐</span><span class="btn-label">Admin Console</span>
       </a>
+      <button id="adminLockBtn" class="ctrl-btn" onclick="lockAdminConsole()" style="display: none; border-color: rgba(239, 68, 68, 0.4); color: #f87171;" title="Lock & Hide Admin Console">
+        <span class="btn-icon">🔒</span><span class="btn-label">Lock Admin</span>
+      </button>
     </div>
   </header>
 
@@ -209,5 +213,35 @@
       }
     }
   </script>
+
+  <!-- Secret Admin Authorization Modal (Reveals Admin Console tab exclusively to Officer) -->
+  <div id="adminAuthModal" style="display: none; position: fixed; inset: 0; background: rgba(3, 7, 18, 0.88); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(14px);">
+    <div style="background: #0b1329; border: 1px solid var(--cyan-bright); border-radius: 14px; max-width: 440px; width: 92%; overflow: hidden; box-shadow: 0 0 45px rgba(0, 240, 255, 0.28);">
+      <div style="background: rgba(0, 240, 255, 0.08); border-bottom: 1px solid rgba(0, 240, 255, 0.2); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.15rem;">🔐</span>
+          <h3 style="margin: 0; font-size: 0.95rem; color: #fff; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Security Officer Clearance</h3>
+        </div>
+        <button onclick="closeAdminAuthModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      <div style="padding: 1.5rem;">
+        <p style="font-size: 0.82rem; color: #94a3b8; margin: 0 0 1.2rem 0; line-height: 1.5;">
+          This management console is restricted. Enter your Master Passkey to reveal the Admin Console tab:
+        </p>
+        <form onsubmit="submitAdminSecretAuth(event)">
+          <div style="margin-bottom: 1rem;">
+            <input type="password" id="adminPasskeyInput" class="passkey-input" placeholder="Enter passkey (e.g. antra)" autocomplete="off" required style="width: 100%; box-sizing: border-box;">
+          </div>
+          <div id="adminAuthError" style="display: none; color: #f87171; font-size: 0.78rem; margin-bottom: 0.85rem; font-family: var(--font-mono);"></div>
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" onclick="closeAdminAuthModal()" class="ctrl-btn" style="padding: 0.5rem 1rem;">Cancel</button>
+            <button type="submit" class="authorize-btn" style="padding: 0.55rem 1.25rem; font-size: 0.8rem; margin: 0; width: auto;">
+              🔓 Authorize Officer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

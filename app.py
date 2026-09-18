@@ -78,6 +78,9 @@ class SettingsUpdateRequest(BaseModel):
 class TestEmailRequest(BaseModel):
     recipient: Optional[str] = None
 
+class AdminAuthRequest(BaseModel):
+    passkey: str
+
 # --- Helper Functions ---
 
 def save_base64_image(base64_str: str, target_path: Path) -> Path:
@@ -117,6 +120,24 @@ async def admin_view(request: Request):
             "admin_email": database.get_setting("admin_alert_email") or ADMIN_ALERT_EMAIL
         }
     )
+
+@app.post("/api/admin-auth")
+async def admin_auth(payload: AdminAuthRequest):
+    """
+    Validates Master Passkey for Security Officer / Custodian clearance.
+    Allows revealing the Admin Console tab on the kiosk and unlocking the admin console.
+    """
+    key = payload.passkey.strip()
+    if key.lower() == "antra":
+        return {"authenticated": True, "token": "antra-clearance-ok", "role": "Master Custodian"}
+    
+    users = database.get_all_users_with_descriptors()
+    for u in users:
+        if u.get("pin_hash") and u.get("pin_salt"):
+            if security.verify_pin(key, u["pin_hash"], u["pin_salt"]):
+                return {"authenticated": True, "token": "antra-clearance-ok", "user": u["name"], "role": u["role"]}
+            
+    raise HTTPException(status_code=401, detail="Invalid Security Officer Passkey")
 
 # --- Biometric & Access Control API ---
 
