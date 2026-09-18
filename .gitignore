@@ -24,3 +24,5 @@ node_modules/
 # OS Specific
 .DS_Store
 Thumbs.db
+
+.vercel
