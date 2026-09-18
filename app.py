@@ -80,12 +80,15 @@ class TestEmailRequest(BaseModel):
 # --- Helper Functions ---
 
 def save_base64_image(base64_str: str, target_path: Path) -> Path:
-    # Strip data URI header if present (e.g. data:image/jpeg;base64,)
-    if "," in base64_str:
-        base64_str = base64_str.split(",", 1)[1]
-    img_bytes = base64.b64decode(base64_str)
-    with open(target_path, "wb") as f:
-        f.write(img_bytes)
+    try:
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        if "," in base64_str:
+            base64_str = base64_str.split(",", 1)[1]
+        img_bytes = base64.b64decode(base64_str)
+        with open(target_path, "wb") as f:
+            f.write(img_bytes)
+    except Exception as e:
+        print(f"[WARN] Failed to write image to {target_path}: {e}")
     return target_path
 
 # --- Web Page Views ---
@@ -154,80 +157,96 @@ async def unlock_vault(payload: VaultUnlockRequest, background_tasks: Background
     """
     Step 2 of 2FA: Verifies secret PIN after face identification to unlock the vault.
     """
-    user = database.get_user_by_id(payload.user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    user_id = user["id"]
-    current_failures = user_failed_attempts.get(user_id, 0)
-    
-    is_pin_valid = security.verify_pin(payload.pin, user["pin_hash"], user["pin_salt"])
-    
-    if is_pin_valid:
-        # Reset failed attempts
-        user_failed_attempts[user_id] = 0
+    try:
+        user = database.get_user_by_id(payload.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
         
-        database.log_audit(
-            event_type="VAULT_UNLOCKED",
-            status="SUCCESS",
-            details=f"Authorized 2FA access granted to {user['name']} ({user['employee_id']})",
-            user_name=user["name"],
-            employee_id=user["employee_id"]
-        )
-        return {
-            "success": True,
-            "message": f"Security Clearance Granted. Welcome, {user['name']}.",
-            "auto_lock_seconds": int(database.get_setting("auto_lock_seconds") or VAULT_AUTO_LOCK_SECONDS)
-        }
-    else:
-        # Invalid PIN
-        current_failures += 1
-        user_failed_attempts[user_id] = current_failures
+        user_id = user["id"]
+        current_failures = user_failed_attempts.get(user_id, 0)
         
-        database.log_audit(
-            event_type="ACCESS_DENIED_PIN",
-            status="WARNING",
-            details=f"Incorrect PIN entered for user {user['name']} ({user['employee_id']}). Attempt #{current_failures}",
-            user_name=user["name"],
-            employee_id=user["employee_id"]
-        )
+        is_pin_valid = security.verify_pin(payload.pin, user["pin_hash"], user["pin_salt"])
         
-        # If repeated failures exceed limit, treat as potential impersonation / coercion
-        if current_failures >= MAX_FAILED_PIN_ATTEMPTS:
-            incident_photo = None
-            if payload.snapshot_base64:
-                filename = f"pin_breach_{user['employee_id']}_{int(time.time())}.jpg"
-                filepath = EVIDENCE_DIR / filename
-                save_base64_image(payload.snapshot_base64, filepath)
-                incident_photo = filename
-                
-                log_id = database.log_intruder(
-                    photo_filename=filename,
-                    reason=f"Multiple failed PIN attempts for {user['name']} ({user['employee_id']}) - Potential Coercion/Compromise",
-                    threat_level="CRITICAL"
+        if is_pin_valid:
+            # Reset failed attempts
+            user_failed_attempts[user_id] = 0
+            
+            try:
+                database.log_audit(
+                    event_type="VAULT_UNLOCKED",
+                    status="SUCCESS",
+                    details=f"Authorized 2FA access granted to {user['name']} ({user['employee_id']})",
+                    user_name=user["name"],
+                    employee_id=user["employee_id"]
                 )
-                
-                # Dispatch alert
-                background_tasks.add_task(
-                    email_service.send_intruder_email_alert,
-                    photo_path=filepath,
-                    timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    reason=f"Security Lockout: 3+ Failed PIN attempts for identity {user['name']}",
-                    threat_level="CRITICAL",
-                    incident_id=log_id
+            except Exception as e:
+                print(f"[WARN] Audit write skipped: {e}")
+
+            return {
+                "success": True,
+                "message": f"Security Clearance Granted. Welcome, {user['name']}.",
+                "auto_lock_seconds": int(database.get_setting("auto_lock_seconds") or VAULT_AUTO_LOCK_SECONDS)
+            }
+        else:
+            # Invalid PIN
+            current_failures += 1
+            user_failed_attempts[user_id] = current_failures
+            
+            try:
+                database.log_audit(
+                    event_type="ACCESS_DENIED_PIN",
+                    status="WARNING",
+                    details=f"Incorrect PIN entered for user {user['name']} ({user['employee_id']}). Attempt #{current_failures}",
+                    user_name=user["name"],
+                    employee_id=user["employee_id"]
                 )
+            except Exception as e:
+                print(f"[WARN] Audit write skipped: {e}")
+            
+            # If repeated failures exceed limit, treat as potential impersonation / coercion
+            if current_failures >= MAX_FAILED_PIN_ATTEMPTS:
+                incident_photo = None
+                if payload.snapshot_base64:
+                    filename = f"pin_breach_{user['employee_id']}_{int(time.time())}.jpg"
+                    filepath = EVIDENCE_DIR / filename
+                    save_base64_image(payload.snapshot_base64, filepath)
+                    incident_photo = filename
+                    
+                    log_id = database.log_intruder(
+                        photo_filename=filename,
+                        reason=f"Multiple failed PIN attempts for {user['name']} ({user['employee_id']}) - Potential Coercion/Compromise",
+                        threat_level="CRITICAL"
+                    )
+                    
+                    # Dispatch alert
+                    background_tasks.add_task(
+                        email_service.send_intruder_email_alert,
+                        photo_path=filepath,
+                        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        reason=f"Security Lockout: 3+ Failed PIN attempts for identity {user['name']}",
+                        threat_level="CRITICAL",
+                        incident_id=log_id
+                    )
+                
+                return {
+                    "success": False,
+                    "lockout": True,
+                    "message": f"SECURITY LOCKOUT: Excessive incorrect PIN entries. Intrusion alert triggered!"
+                }
             
             return {
                 "success": False,
-                "lockout": True,
-                "message": f"SECURITY LOCKOUT: Excessive incorrect PIN entries. Intrusion alert triggered!"
+                "lockout": False,
+                "attempts_remaining": MAX_FAILED_PIN_ATTEMPTS - current_failures,
+                "message": f"Invalid PIN. {MAX_FAILED_PIN_ATTEMPTS - current_failures} attempts remaining before security lockout."
             }
-        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] unlock_vault exception: {e}")
         return {
             "success": False,
-            "lockout": False,
-            "attempts_remaining": MAX_FAILED_PIN_ATTEMPTS - current_failures,
-            "message": f"Invalid PIN. {MAX_FAILED_PIN_ATTEMPTS - current_failures} attempts remaining before security lockout."
+            "message": f"Security verification error: {str(e)}"
         }
 
 @app.post("/api/report-intruder")

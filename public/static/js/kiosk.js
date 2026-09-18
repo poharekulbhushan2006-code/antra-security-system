@@ -303,6 +303,17 @@ async function submitPinVerification() {
             })
         });
 
+        if (!response.ok) {
+            let errMsg = `Server returned HTTP ${response.status}`;
+            try {
+                const errData = await response.json();
+                errMsg = errData.detail || errData.message || errMsg;
+            } catch (_) {}
+            window.vaultAudio.playDeniedBuzzer();
+            setStatus(`GATEWAY ERROR: ${errMsg}`, "intruder");
+            return;
+        }
+
         const data = await response.json();
 
         if (data.success) {
@@ -337,7 +348,7 @@ async function submitPinVerification() {
         }
     } catch (err) {
         console.error("Unlock error:", err);
-        setStatus("NETWORK / SECURITY GATEWAY ERROR", "intruder");
+        setStatus(`SECURITY GATEWAY ERROR: ${err.message || "Connection failed"}`, "intruder");
     }
 }
 

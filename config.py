@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -11,13 +12,42 @@ VAULT_AUTO_LOCK_SECONDS = int(os.getenv("VAULT_AUTO_LOCK_SECONDS", "10"))
 INTRUDER_ALERT_COOLDOWN_SECONDS = int(os.getenv("INTRUDER_ALERT_COOLDOWN_SECONDS", "6"))
 MAX_FAILED_PIN_ATTEMPTS = int(os.getenv("MAX_FAILED_PIN_ATTEMPTS", "3"))
 
-# Storage Paths
-DATABASE_PATH = BASE_DIR / "data" / "security_vault.db"
-EVIDENCE_DIR = BASE_DIR / "evidence" / "intruders"
-USER_PHOTOS_DIR = BASE_DIR / "evidence" / "users"
-EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
-USER_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
-(BASE_DIR / "data").mkdir(parents=True, exist_ok=True)
+# Detect serverless environment (Vercel / AWS Lambda)
+IS_SERVERLESS = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or not os.access(str(BASE_DIR), os.W_OK))
+
+if IS_SERVERLESS:
+    TMP_DIR = Path("/tmp")
+    DATABASE_PATH = TMP_DIR / "security_vault.db"
+    EVIDENCE_DIR = TMP_DIR / "evidence" / "intruders"
+    USER_PHOTOS_DIR = TMP_DIR / "evidence" / "users"
+
+    # Copy bundled read-only database to writable /tmp so Kulbhushan's profile is accessible and writable
+    SEED_DB = BASE_DIR / "data" / "security_vault.db"
+    if SEED_DB.exists() and not DATABASE_PATH.exists():
+        try:
+            shutil.copy2(SEED_DB, DATABASE_PATH)
+            print("[INFO] Copied bundled database to /tmp/security_vault.db")
+        except Exception as e:
+            print(f"[WARN] Failed to copy seed db: {e}")
+
+    # Copy existing user photos to /tmp
+    SEED_USER_PHOTOS = BASE_DIR / "evidence" / "users"
+    if SEED_USER_PHOTOS.exists() and not USER_PHOTOS_DIR.exists():
+        try:
+            shutil.copytree(SEED_USER_PHOTOS, USER_PHOTOS_DIR, dirs_exist_ok=True)
+        except Exception:
+            pass
+else:
+    DATABASE_PATH = BASE_DIR / "data" / "security_vault.db"
+    EVIDENCE_DIR = BASE_DIR / "evidence" / "intruders"
+    USER_PHOTOS_DIR = BASE_DIR / "evidence" / "users"
+
+try:
+    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+    USER_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 # Email / Alert Notification Settings
 ADMIN_ALERT_EMAIL = os.getenv("ADMIN_ALERT_EMAIL", "security-officer@antrasecurity.local")
